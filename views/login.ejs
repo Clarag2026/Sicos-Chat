@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0d6efd,#0a58ca);
+height:100dvh;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+/* 🔥 CONTENEDOR PRINCIPAL (IGUAL QUE CHAT CLIENTE) */
+.login-box{
+background:white;
+width:100%;
+max-width:420px;
+height:100dvh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+padding:25px;
+box-sizing:border-box;
+}
+
+/* 🔥 EN PANTALLAS GRANDES (igual que chat) */
+@media(min-width:768px){
+.login-box{
+height:540px;
+border-radius:15px;
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+}
+
+input{
+width:100%;
+padding:12px;
+margin:8px 0;
+border-radius:20px;
+border:1px solid #ccc;
+outline:none;
+box-sizing:border-box;
+}
+
+button{
+width:100%;
+padding:12px;
+margin-top:8px;
+border:none;
+border-radius:20px;
+background:#0d6efd;
+color:white;
+font-size:14px;
+}
+
+.error{
+color:red;
+font-size:12px;
+margin-top:5px;
+}
+.header-login{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:20px;
+}
+
+.header-login img{
+    width:90px;
+    margin-bottom:10px;
+}
+
+.header-login h3{
+    margin:0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+
+<div class="header-login">
+    <img src="/img/logo.png">
+    <h3>Acceder</h3>
+</div>
+<form id="loginForm">
+
+<input type="text" name="username" placeholder="Usuario" required>
+<input type="password" name="password" placeholder="Contraseña" required>
+
+<div class="error" id="errorMsg"></div>
+
+<button type="button" onclick="enviar('servicios')">Servicios</button>
+<button type="button" onclick="enviar('soporte')">Soporte</button>
+<button type="button" onclick="enviar('gerencia')">Gerencia</button>
+<button 
+onclick="location.href='/empleado/usuarios/nuevo?rol=admin'" 
+style="background:#198754;">
+➕ Crear Usuario
+</button>
+
+</form>
+
+</div>
+
+<script>
+async function enviar(depto){
+
+const user=document.querySelector('[name="username"]').value;
+const pass=document.querySelector('[name="password"]').value;
+
+if(!user||!pass){
+document.getElementById("errorMsg").innerText="Completa los campos";
+return;
+}
+
+const res=await fetch("/empleado/login",{
+method:"POST",
+headers:{ "Content-Type":"application/x-www-form-urlencoded"},
+body:`username=${user}&password=${pass}&deptoSeleccionado=${depto}`
+});
+
+if(res.redirected){
+window.location=res.url;
+}else{
+document.getElementById("errorMsg").innerText="No autorizado o datos incorrectos";
+}
+}
+</script>
+
+</body>
+</html>

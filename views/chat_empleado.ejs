@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Empleado - SICOS</title>
+
+<style>
+body {
+    margin: 0;
+    display: flex;
+    font-family: Arial;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    background: #0d6efd;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 10px;
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.chat-item {
+    padding: 10px;
+    background: rgba(255,255,255,0.1);
+    margin: 5px 0;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-item:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #eee;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-box {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.msg {
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 60%;
+}
+
+.cliente { background: #d1e7ff; align-self: flex-start; }
+.empleado { background: #c3ffc3; align-self: flex-end; }
+
+.input-area {
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.enviar {
+    background: #0d6efd;
+    color: white;
+}
+
+.archivo-btn {
+    background: #0d6efd;
+    color: white;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.finalizar {
+    background: red;
+    color: white;
+}
+
+.chat-box img {
+    max-width: 150px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+#visor{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.9);
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    z-index:999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+<div class="sidebar-header">
+<div style="display:flex; justify-content:space-between; align-items:center;">
+<h3 style="margin:0;">Chats (<%= chats.length %>)</h3>
+<input type="text" id="busqueda" placeholder="Buscar..." style="width:100px; padding:5px; border-radius:5px; border:none;">
+</div>
+</div>
+
+<div class="chat-list" id="listaChats">
+<% chats.forEach(chat => { %>
+
+<div class="chat-item"
+onclick="location.href='/empleado/chat/<%= chat.id %>?depto=<%= depto %>'">
+
+<span>
+<% let codigo = String(chat.id).padStart(4,'0'); %>
+<% if (chat.cliente_nombre && chat.cliente_nombre !== 'Cliente') { %>
+<b><%= chat.cliente_nombre %></b> (<%= codigo %>)
+<% } else { %>
+Chat <%= codigo %>
+<% } %>
+</span>
+
+</div>
+
+<% }) %>
+</div>
+
+<div class="sidebar-header">
+<form action="/empleado/logout">
+<button style="width:100%; background:#dc3545;">Salir</button>
+</form>
+</div>
+</div>
+
+<div class="main">
+
+<div class="header">
+<div style="display:flex;align-items:center;gap:10px;">
+<img src="/img/logo.png" style="width:35px;">
+<div>
+<b>SICO'S Panel</b><br>
+
+<%
+let nombreActual = "Chat " + String(chatId).padStart(4,'0');
+const chatActualObj = chats.find(c => c.id == chatId);
+
+if(chatActualObj && chatActualObj.cliente_nombre && chatActualObj.cliente_nombre !== "Cliente"){
+    nombreActual = chatActualObj.cliente_nombre;
+}
+%>
+
+<small><%= nombreActual %></small>
+</div>
+</div>
+
+<button onclick="editarNombre()" style="background:#ffc107;color:black;border-radius:6px;">
+✏️ Editar
+</button>
+</div>
+
+<div class="chat-box" id="chatBox">
+<% mensajes.forEach(m => { %>
+<div class="msg <%= m.emisor %>">
+
+<% if (m.mensaje && /\.(jpg|png|jpeg|gif)$/i.test(m.mensaje)) { %>
+    <img src="<%= m.mensaje %>" onclick="verImagen('<%= m.mensaje %>')">
+<% } else if (m.mensaje && m.mensaje.startsWith("http")) { %>
+    <a href="<%= m.mensaje %>" target="_blank">📄 Archivo</a>
+<% } else { %>
+    <%= m.mensaje %>
+<% } %>
+
+</div>
+<% }) %>
+</div>
+
+<div class="input-area">
+
+<form id="formMensaje" style="display:flex;flex:1;gap:5px;">
+<input type="text" name="mensaje" required>
+<button class="enviar">➤</button>
+</form>
+
+<label class="archivo-btn">
+📁
+<input type="file" id="fileInput" hidden>
+</label>
+
+<form action="/empleado/finalizar" method="POST">
+<input type="hidden" name="chat_id" value="<%= chatId %>">
+<input type="hidden" name="depto" value="<%= depto %>">
+<button class="finalizar">Finalizar</button>
+</form>
+
+</div>
+
+</div>
+
+<!-- VISOR -->
+<div id="visor">
+<div onclick="cerrarVisor()" style="position:absolute;top:20px;right:25px;font-size:30px;color:white;cursor:pointer;">✖</div>
+<a id="descargarImg" style="position:absolute;top:20px;left:25px;color:white;background:#0d6efd;padding:8px;border-radius:6px;cursor:pointer;">
+Descargar
+</a>
+<img id="imgGrande" style="max-width:90%; max-height:90%;">
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const chatBox = document.getElementById("chatBox");
+const chatActual = "<%= chatId %>";
+
+// 🔥 UNIRSE
+socket.emit("joinAllChats", [
+<% chats.forEach(c => { %>
+"<%= c.id %>",
+<% }) %>
+]);
+socket.emit("joinChat", chatActual);
+
+// 🔥 ENVIAR
+document.getElementById("formMensaje").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    const input = e.target.mensaje;
+    const mensaje = input.value.trim();
+    if(!mensaje) return;
+
+    await fetch("/empleado/responder",{
+        method:"POST",
+        headers:{ "Content-Type":"application/x-www-form-urlencoded"},
+        body:`mensaje=${encodeURIComponent(mensaje)}&chat_id=${chatActual}`
+    });
+
+    input.value="";
+});
+
+// 🔥 CHAT ACTUAL
+socket.on("nuevoMensaje",(data)=>{
+
+    if(String(data.chat_id) !== String(chatActual)) return;
+
+    const div = document.createElement("div");
+    div.className = "msg " + data.emisor;
+
+    // 🔥 DETECTA IMÁGENES (Cloudinary incluido)
+    if (data.mensaje && /\.(jpg|png|jpeg|gif)$/i.test(data.mensaje)) {
+        div.innerHTML = `<img src="${data.mensaje}" onclick="verImagen('${data.mensaje}')">`;
+    } else {
+        div.innerText = data.mensaje || "";
+    }
+
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// 🔥 SIDEBAR TIEMPO REAL (SIN MOVER NADA)
+socket.on("nuevoMensaje",(data)=>{
+
+    if(String(data.chat_id) !== String(chatActual)){
+        location.reload();
+    }
+
+});
+
+// visor
+function verImagen(src){
+    document.getElementById("visor").style.display="flex";
+    document.getElementById("imgGrande").src=src;
+    document.getElementById("descargarImg").setAttribute("data-url", src);
+}
+
+function cerrarVisor(){
+    document.getElementById("visor").style.display="none";
+}
+
+// 🔥 ARCHIVO
+document.getElementById("fileInput").addEventListener("change", async function(){
+
+    const file = this.files[0];
+    if(!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "chat_upload");
+
+    const res = await fetch("https://api.cloudinary.com/v1_1/dv0wcnt9p/image/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    if(!data.secure_url){
+        alert("Error subiendo imagen");
+        return;
+    }
+
+    await fetch("/empleado/responder",{
+        method:"POST",
+        headers:{ "Content-Type":"application/x-www-form-urlencoded"},
+        body:`mensaje=${encodeURIComponent(data.secure_url)}&chat_id=${chatActual}`
+    });
+
+    this.value = "";
+});
+function editarNombre(){
+
+    const nuevo = prompt("Nuevo nombre del cliente:");
+
+    if(!nuevo) return;
+
+    fetch("/empleado/editar-nombre",{
+        method:"POST",
+        headers:{ "Content-Type":"application/x-www-form-urlencoded"},
+        body:`chat_id=${chatActual}&nombre=${encodeURIComponent(nuevo)}`
+    }).then(()=>{
+        location.reload();
+    });
+
+}
+document.getElementById("descargarImg").addEventListener("click", async function(){
+
+    const url = this.getAttribute("data-url");
+    if(!url) return;
+
+    try{
+        const res = await fetch(url);
+        const blob = await res.blob();
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "imagen.jpg";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+    }catch(err){
+        alert("No se pudo descargar la imagen");
+    }
+});
+</script>
+
+</body>
+</html>
